@@ -1,0 +1,68 @@
+body {
+  width: 280px;
+  min-height: 400px;
+  font-family: "Poppins", sans-serif;
+  background-color: #f7f6fa;
+  color: #1e1e2f;
+  margin: 0;
+  padding: 10px;
+  overflow-y: auto;
+  border-radius: 8px;
+}
+
+h1 {
+  font-size: 20px;
+  font-weight: 600;
+  text-align: center;
+  color: #4b0082;
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+
+button {
+  display: block;
+  margin: 0 auto 15px auto;
+  background-color: #d78be4;
+  color: white;
+  border: none;
+  padding: 8px 16px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: 0.3s;
+}
+
+button:hover {
+  background-color: #b45cd3;
+}
+
+ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+li {
+  background: white;
+  margin-bottom: 8px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  transition: background 0.3s, transform 0.1s;
+}
+
+li:hover {
+  background: #f0e8ff;
+  transform: scale(1.02);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-thumb {
+  background-color: #d0a6f5;
+  border-radius: 10px;
+}
