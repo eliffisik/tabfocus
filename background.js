@@ -1,3 +1,2 @@
-chrome.runtime.onInstalled.addListener(() => {
-  console.log("TabFocus Extension installed!");
-});
+self.addEventListener("install", () => console.log("[TabFocus] installed"));
+self.addEventListener("activate", () => console.log("[TabFocus] activated"));
