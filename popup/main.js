@@ -34,10 +34,21 @@ window.addEventListener("DOMContentLoaded", () => {
     });
   };
 
-  // açılışta listeyi çek
-  chrome.storage.local.get({ blockedSites: [] }, ({ blockedSites }) => {
+  const defaultSites = [
+  "youtube.com", "twitter.com", "x.com",
+  "instagram.com", "tiktok.com", "facebook.com", "netflix.com"
+];
+
+chrome.storage.local.get({ blockedSites: defaultSites }, ({ blockedSites }) => {
+  // Eğer storage boşsa varsayılan listeyi kaydet
+  if (!blockedSites || blockedSites.length === 0) {
+    chrome.storage.local.set({ blockedSites: defaultSites });
+    chrome.runtime.sendMessage({ type: "SET_BLOCKED_SITES", sites: defaultSites });
+    renderBlocked(defaultSites);
+  } else {
     renderBlocked(blockedSites);
-  });
+  }
+});
 
   addSiteBtn?.addEventListener("click", () => {
     const raw = (siteInput.value || "").trim();
