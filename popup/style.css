@@ -45,3 +45,54 @@ li:hover { background: #f0e8ff; transform: scale(1.02); }
 }
 input:checked + .slider { background-color: #b45cd3; }
 input:checked + .slider:before { transform: translateX(18px); }
+
+
+/* Blocked list chips */
+#blockedList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 0;
+}
+
+.block-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  background: #f1e9ff;
+  color: #3a2f6e;
+  font-size: 12px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.06);
+}
+
+.block-chip .host {
+  font-weight: 600;
+}
+
+.block-chip .remove {
+  appearance: none;
+  border: none;
+  background: #e7dbff;
+  color: #4b0082;
+  font-weight: 700;
+  width: 20px;
+  height: 20px;
+  line-height: 18px;
+  border-radius: 50%;
+  cursor: pointer;
+  text-align: center;
+  padding: 0;
+}
+.block-chip .remove:hover {
+  background: #d7c1ff;
+}
+
+/* “Boş” mesajı */
+#blockedEmpty {
+  font-size: 12px;
+  color: #6b6b85;
+  margin-top: 4px;
+}

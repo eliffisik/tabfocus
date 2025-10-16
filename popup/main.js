@@ -8,20 +8,51 @@ window.addEventListener("DOMContentLoaded", () => {
  const siteInput   = document.getElementById("siteInput");
   const addSiteBtn  = document.getElementById("addSite");
   const blockedList = document.getElementById("blockedList");
+  const blockedEmpty = document.getElementById("blockedEmpty");
 
-  const renderBlocked = (sites=[]) => {
+if(!btn||!list){
+    console.error("Popup elements not found (#listTabs / #tabsList).");
+    return;
+}
+
+ const defaultSites = [
+  "youtube.com", "twitter.com", "x.com",
+  "instagram.com", "tiktok.com", "facebook.com", "netflix.com"
+];
+
+ // ---- Helpers ----
+  const faviconEmoji = (host) => {
+    if (/youtube|netflix/.test(host)) return "📺";
+    if (/twitter|x\.com/.test(host))  return "🐦";
+    if (/instagram|tiktok|facebook/.test(host)) return "📱";
+    return "🌐";
+  };
+
+  const setEmptyState = (hasItems) => {
+    if (!blockedEmpty) return;
+    blockedEmpty.textContent = hasItems ? "" : "Henüz engelli site yok. Bir domain ekleyin (örn: reddit.com)";
+  };
+
+  const renderBlocked = (sites = []) => {
     blockedList.innerHTML = "";
+    setEmptyState(sites.length > 0);
+
     sites.forEach((host, i) => {
       const li = document.createElement("li");
-      li.textContent = host;
-      li.style.display = "flex";
-      li.style.justifyContent = "space-between";
-      li.style.alignItems = "center";
+      li.className = "block-chip";
+
+      const icon = document.createElement("span");
+      icon.textContent = faviconEmoji(host);
+
+      const text = document.createElement("span");
+      text.className = "host";
+      text.textContent = host;
 
       const rm = document.createElement("button");
-      rm.textContent = "Remove";
-      rm.style.margin = "0";
-      rm.style.padding = "4px 8px";
+      rm.className = "remove";
+      rm.title = "Remove";
+      rm.setAttribute("aria-label", `Remove ${host}`);
+      rm.textContent = "×";
       rm.addEventListener("click", () => {
         const next = sites.filter((_, idx) => idx !== i);
         chrome.storage.local.set({ blockedSites: next });
@@ -29,31 +60,68 @@ window.addEventListener("DOMContentLoaded", () => {
         renderBlocked(next);
       });
 
-      li.appendChild(rm);
+      li.append(icon, text, rm);
       blockedList.appendChild(li);
     });
   };
 
-  const defaultSites = [
-  "youtube.com", "twitter.com", "x.com",
-  "instagram.com", "tiktok.com", "facebook.com", "netflix.com"
-];
+  const normalizeHost = (raw) => (raw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "");
 
-chrome.storage.local.get({ blockedSites: defaultSites }, ({ blockedSites }) => {
-  // Eğer storage boşsa varsayılan listeyi kaydet
-  if (!blockedSites || blockedSites.length === 0) {
-    chrome.storage.local.set({ blockedSites: defaultSites });
-    chrome.runtime.sendMessage({ type: "SET_BLOCKED_SITES", sites: defaultSites });
-    renderBlocked(defaultSites);
-  } else {
-    renderBlocked(blockedSites);
+  // ---- Focus Mode (kalıcı) ----
+  if (toggle) {
+    // Açılışta storage'dan yükle
+    chrome.storage.local.get({ focusMode: false }, ({ focusMode }) => {
+      toggle.checked = !!focusMode;
+    });
+
+    // Değişim → storage'a yaz + background'a bildir
+    toggle.addEventListener("change", () => {
+      const enabled = !!toggle.checked;
+      chrome.storage.local.set({ focusMode: enabled });
+      chrome.runtime.sendMessage({ type: "SET_FOCUS_MODE", enabled }, () => {
+        void chrome.runtime.lastError; // callback hata yutma
+      });
+    });
   }
-});
 
+  // ---- Sekmeleri listele ----
+  btn.addEventListener("click", async () => {
+    try {
+      const tabs = await chrome.tabs.query({});
+      list.innerHTML = "";
+      tabs.forEach((tab) => {
+        const li = document.createElement("li");
+        li.textContent = tab.title || "(no title)";
+        li.title = tab.url || "";
+        li.addEventListener("click", () => chrome.tabs.update(tab.id, { active: true }));
+        list.appendChild(li);
+      });
+    } catch (e) {
+      console.error("tabs.query failed:", e);
+    }
+  });
+
+  // ---- Blocked sites: initial load (defaults if empty) ----
+  chrome.storage.local.get({ blockedSites: defaultSites }, ({ blockedSites }) => {
+    if (!blockedSites || blockedSites.length === 0) {
+      chrome.storage.local.set({ blockedSites: defaultSites });
+      chrome.runtime.sendMessage({ type: "SET_BLOCKED_SITES", sites: defaultSites });
+      renderBlocked(defaultSites);
+    } else {
+      renderBlocked(blockedSites);
+    }
+  });
+
+  // ---- Blocked sites: add ----
   addSiteBtn?.addEventListener("click", () => {
-    const raw = (siteInput.value || "").trim();
-    if (!raw) return;
-    const host = raw.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    const host = normalizeHost(siteInput.value);
+    if (!host) return;
+
     chrome.storage.local.get({ blockedSites: [] }, ({ blockedSites }) => {
       if (!blockedSites.includes(host)) {
         const next = [...blockedSites, host];
@@ -65,37 +133,8 @@ chrome.storage.local.get({ blockedSites: defaultSites }, ({ blockedSites }) => {
     });
   });
 
-
-  chrome.storage.sync.get(["focusMode"], ({ focusMode }) => {
-    toggle.checked = !!focusMode;
-  });
-toggle.addEventListener("change", () => {
-    const enabled = toggle.checked;
-    chrome.runtime.sendMessage({ type: "SET_FOCUS_MODE", enabled });
-  });
-
-
-
-  
-  if (!btn || !list) {
-    console.error("Popup elements not found");
-    return;
-  }
-
-  btn.addEventListener("click", async () => {
-    try {
-      const tabs = await chrome.tabs.query({});
-      list.innerHTML = "";
-
-      tabs.forEach((tab) => {
-        const li = document.createElement("li");
-        li.textContent = tab.title || "(no title)";
-        li.title = tab.url || "";
-        li.addEventListener("click", () => chrome.tabs.update(tab.id, { active: true }));
-        list.appendChild(li);
-      });
-    } catch (e) {
-      console.error("tabs.query failed:", e);
-    }
+  // Enter ile ekleme
+  siteInput?.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") addSiteBtn?.click();
   });
 });
