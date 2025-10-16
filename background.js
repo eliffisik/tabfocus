@@ -21,6 +21,7 @@ chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
   if (msg?.type === "SET_FOCUS_MODE") {
     focusMode = !!msg.enabled;
     chrome.storage.sync.set({ focusMode });
+    updateBadge();
     console.log("[TabFocus] focusMode =", focusMode);
     sendResponse({ ok: true });
     return true;
@@ -52,6 +53,18 @@ chrome.tabs.onActivated.addListener(async ({ tabId }) => {
     chrome.tabs.update(tabId, { url: "chrome://newtab" });
   }
 });
+
+const updateBadge = () => {
+  chrome.action.setBadgeText({ text: focusMode ? "ON" : "" });
+  chrome.action.setBadgeBackgroundColor({ color: "#b45cd3" });
+};
+
+// açılışta
+chrome.storage.local.get({ focusMode: false }, ({ focusMode: fm }) => {
+  focusMode = !!fm; updateBadge();
+});
+
+
 
 self.addEventListener("install", () => console.log("[TabFocus] installed"));
 self.addEventListener("activate", () => console.log("[TabFocus] activated"));

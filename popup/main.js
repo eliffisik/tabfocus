@@ -5,7 +5,54 @@ window.addEventListener("DOMContentLoaded", () => {
   const list = document.getElementById("tabsList");
   const toggle = document.getElementById("focusToggle");
 
+ const siteInput   = document.getElementById("siteInput");
+  const addSiteBtn  = document.getElementById("addSite");
+  const blockedList = document.getElementById("blockedList");
 
+  const renderBlocked = (sites=[]) => {
+    blockedList.innerHTML = "";
+    sites.forEach((host, i) => {
+      const li = document.createElement("li");
+      li.textContent = host;
+      li.style.display = "flex";
+      li.style.justifyContent = "space-between";
+      li.style.alignItems = "center";
+
+      const rm = document.createElement("button");
+      rm.textContent = "Remove";
+      rm.style.margin = "0";
+      rm.style.padding = "4px 8px";
+      rm.addEventListener("click", () => {
+        const next = sites.filter((_, idx) => idx !== i);
+        chrome.storage.local.set({ blockedSites: next });
+        chrome.runtime.sendMessage({ type: "SET_BLOCKED_SITES", sites: next });
+        renderBlocked(next);
+      });
+
+      li.appendChild(rm);
+      blockedList.appendChild(li);
+    });
+  };
+
+  // açılışta listeyi çek
+  chrome.storage.local.get({ blockedSites: [] }, ({ blockedSites }) => {
+    renderBlocked(blockedSites);
+  });
+
+  addSiteBtn?.addEventListener("click", () => {
+    const raw = (siteInput.value || "").trim();
+    if (!raw) return;
+    const host = raw.replace(/^https?:\/\//, "").replace(/\/.*$/, "");
+    chrome.storage.local.get({ blockedSites: [] }, ({ blockedSites }) => {
+      if (!blockedSites.includes(host)) {
+        const next = [...blockedSites, host];
+        chrome.storage.local.set({ blockedSites: next });
+        chrome.runtime.sendMessage({ type: "SET_BLOCKED_SITES", sites: next });
+        renderBlocked(next);
+        siteInput.value = "";
+      }
+    });
+  });
 
 
   chrome.storage.sync.get(["focusMode"], ({ focusMode }) => {
