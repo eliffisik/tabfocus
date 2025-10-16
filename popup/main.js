@@ -3,7 +3,22 @@ console.log("[TabFocus] popup loaded");
 window.addEventListener("DOMContentLoaded", () => {
   const btn  = document.getElementById("listTabs");
   const list = document.getElementById("tabsList");
+  const toggle = document.getElementById("focusToggle");
 
+
+
+
+  chrome.storage.sync.get(["focusMode"], ({ focusMode }) => {
+    toggle.checked = !!focusMode;
+  });
+toggle.addEventListener("change", () => {
+    const enabled = toggle.checked;
+    chrome.runtime.sendMessage({ type: "SET_FOCUS_MODE", enabled });
+  });
+
+
+
+  
   if (!btn || !list) {
     console.error("Popup elements not found");
     return;
