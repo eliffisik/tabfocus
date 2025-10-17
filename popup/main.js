@@ -1,35 +1,41 @@
+// TabFocus - popup (clean v3)
 console.log("[TabFocus] popup loaded");
 
 window.addEventListener("DOMContentLoaded", () => {
-  const btn  = document.getElementById("listTabs");
-  const list = document.getElementById("tabsList");
-  const toggle = document.getElementById("focusToggle");
-
- const siteInput   = document.getElementById("siteInput");
-  const addSiteBtn  = document.getElementById("addSite");
-  const blockedList = document.getElementById("blockedList");
+  // ---- DOM ----
+  const btn          = document.getElementById("listTabs");
+  const list         = document.getElementById("tabsList");
+  const toggle       = document.getElementById("focusToggle");
+  const siteInput    = document.getElementById("siteInput");
+  const addSiteBtn   = document.getElementById("addSite");
+  const blockedList  = document.getElementById("blockedList");
   const blockedEmpty = document.getElementById("blockedEmpty");
 
-    const sessionNameInput = document.getElementById("sessionName");
+  const sessionNameInput = document.getElementById("sessionName");
   const saveSessionBtn   = document.getElementById("saveSession");
   const sessionsList     = document.getElementById("sessionsList");
 
-if(!btn||!list){
+  const analyticsList    = document.getElementById("analyticsList");
+  const themeToggle      = document.getElementById("themeToggle");
+
+  // Guard
+  if (!btn || !list) {
     console.error("Popup elements not found (#listTabs / #tabsList).");
     return;
-}
+  }
 
- // ---- State ----
+  // ---- State ----
   let isFocusOn = false;
   let tabsVisible = false;      // tab list toggle
   let currentBlocked = [];      // popup cache
 
- const defaultSites = [
-  "youtube.com", "twitter.com", "x.com",
-  "instagram.com", "tiktok.com", "facebook.com", "netflix.com"
-];
+  // ---- Defaults ----
+  const defaultSites = [
+    "youtube.com", "twitter.com", "x.com",
+    "instagram.com", "tiktok.com", "facebook.com", "netflix.com"
+  ];
 
- // ---- Helpers ----
+  // ---- Helpers ----
   const faviconEmoji = (host) => {
     if (/youtube|netflix/.test(host)) return "📺";
     if (/twitter|x\.com/.test(host))  return "🐦";
@@ -42,6 +48,14 @@ if(!btn||!list){
     blockedEmpty.textContent = hasItems ? "" : "Henüz engelli site yok. Bir domain ekleyin (örn: reddit.com)";
   };
 
+  const normalizeHost = (raw) => (raw || "")
+    .trim()
+    .toLowerCase()
+    .replace(/^https?:\/\//, "")
+    .replace(/^www\./, "")
+    .replace(/\/.*$/, "");
+
+  // ---- Blocked list render (focus durumuna göre davranış) ----
   const renderBlocked = (sites = []) => {
     blockedList.innerHTML = "";
     setEmptyState(sites.length > 0);
@@ -57,13 +71,29 @@ if(!btn||!list){
       text.className = "host";
       text.textContent = host;
 
+      // Focus OFF iken tıklanabilir, ON iken disabled
+      if (!isFocusOn) {
+        li.classList.add("clickable");
+        li.title = `Open ${host}`;
+        li.addEventListener("click", (e) => {
+          const target = e.target;
+          if (target && target.classList && target.classList.contains("remove")) return;
+          chrome.tabs.create({ url: `https://${host}` });
+        });
+      } else {
+        li.classList.add("disabled");
+        li.title = "Disabled in Focus Mode";
+      }
+
       const rm = document.createElement("button");
       rm.className = "remove";
       rm.title = "Remove";
       rm.setAttribute("aria-label", `Remove ${host}`);
       rm.textContent = "×";
-      rm.addEventListener("click", () => {
+      rm.addEventListener("click", (e) => {
+        e.stopPropagation();
         const next = sites.filter((_, idx) => idx !== i);
+        currentBlocked = next; // cache güncelle
         chrome.storage.local.set({ blockedSites: next });
         chrome.runtime.sendMessage({ type: "SET_BLOCKED_SITES", sites: next });
         renderBlocked(next);
@@ -74,79 +104,133 @@ if(!btn||!list){
     });
   };
 
-  const normalizeHost = (raw) => (raw || "")
-    .trim()
-    .toLowerCase()
-    .replace(/^https?:\/\//, "")
-    .replace(/^www\./, "")
-    .replace(/\/.*$/, "");
-
   // ---- Focus Mode (kalıcı) ----
-  if (toggle) {
-    // Açılışta storage'dan yükle
-    chrome.storage.local.get({ focusMode: false }, ({ focusMode }) => {
-      toggle.checked = !!focusMode;
-    });
+  chrome.storage.local.get({ focusMode: false }, ({ focusMode }) => {
+    isFocusOn = !!focusMode;
+    if (toggle) toggle.checked = isFocusOn;
+    // sadece görünümü güncelle
+    renderBlocked(currentBlocked);
+  });
 
-    // Değişim → storage'a yaz + background'a bildir
-    toggle.addEventListener("change", () => {
-      const enabled = !!toggle.checked;
-      chrome.storage.local.set({ focusMode: enabled });
-      chrome.runtime.sendMessage({ type: "SET_FOCUS_MODE", enabled }, () => {
-        void chrome.runtime.lastError; // callback hata yutma
-      });
+  toggle?.addEventListener("change", () => {
+    isFocusOn = !!toggle.checked;
+    chrome.storage.local.set({ focusMode: isFocusOn });
+    chrome.runtime.sendMessage({ type: "SET_FOCUS_MODE", enabled: isFocusOn }, () => {
+      void chrome.runtime.lastError;
     });
-  }
+    // sadece görünümü güncelle (listeyi boşaltma)
+    renderBlocked(currentBlocked);
+  });
 
-  // ---- Sekmeleri listele ----
-  btn.addEventListener("click", async () => {
-    try {
-      const tabs = await chrome.tabs.query({});
-      list.innerHTML = "";
-      tabs.forEach((tab) => {
-        const li = document.createElement("li");
-        li.textContent = tab.title || "(no title)";
-        li.title = tab.url || "";
-        li.addEventListener("click", () => chrome.tabs.update(tab.id, { active: true }));
-        list.appendChild(li);
-      });
-    } catch (e) {
-      console.error("tabs.query failed:", e);
+  // Storage değişimleri (başka taraftan gelirse) senkronize et
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== "local") return;
+
+    if (changes.focusMode) {
+      isFocusOn = !!changes.focusMode.newValue;
+      if (toggle) toggle.checked = isFocusOn;
+      renderBlocked(currentBlocked);
+    }
+    if (changes.blockedSites) {
+      currentBlocked = changes.blockedSites.newValue || [];
+      renderBlocked(currentBlocked);
     }
   });
 
+  // ---- Sekmeleri listele (toggle'lı) ----
+ // ---- Sekmeleri listele (toggle'lı & kart görünümü) ----
+
+
+btn.addEventListener("click", async () => {
+  if (tabsVisible) {
+    list.innerHTML = "";
+    tabsVisible = false;
+    btn.textContent = "List Open Tabs";
+    return;
+  }
+
+  try {
+    const tabs = await chrome.tabs.query({});
+    list.innerHTML = "";
+
+    tabs.forEach((tab, idx) => {
+      // domain çıkar
+      const url = tab.url || "";
+      let domain = "";
+      try { domain = new URL(url).hostname.replace(/^www\./,""); } catch {}
+
+      const li = document.createElement("li");
+      li.className = "tab-item";
+      li.title = url;
+
+      // favicon
+      const fav = document.createElement("img");
+      fav.className = "fav";
+      fav.src = tab.favIconUrl || "data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='20' height='20'><rect width='20' height='20' rx='4' fill='%23ddd'/></svg>";
+      fav.referrerPolicy = "no-referrer";
+
+      // başlık + domain
+      const title = document.createElement("div");
+      title.className = "title";
+      title.textContent = tab.title || "(no title)";
+
+      const meta = document.createElement("div");
+      meta.className = "domain";
+      meta.textContent = domain || "—";
+
+      // aktif sekmeye mini rozet
+      const badge = document.createElement("div");
+      if (tab.active) {
+        badge.className = "badge";
+        badge.textContent = "ACTIVE";
+      }
+
+      // tıklayınca sekmeye geç
+      li.addEventListener("click", () => chrome.tabs.update(tab.id, { active: true }));
+
+      // DOM'a yerleştir
+      li.append(fav, title, badge, meta);
+      list.appendChild(li);
+    });
+
+    tabsVisible = true;
+    btn.textContent = "Hide Tabs";
+  } catch (e) {
+    console.error("tabs.query failed:", e);
+  }
+});
+
+
   // ---- Blocked sites: initial load (defaults if empty) ----
   chrome.storage.local.get({ blockedSites: defaultSites }, ({ blockedSites }) => {
+    currentBlocked = (blockedSites && blockedSites.length)
+      ? blockedSites
+      : defaultSites.slice();
+
     if (!blockedSites || blockedSites.length === 0) {
-      chrome.storage.local.set({ blockedSites: defaultSites });
-      chrome.runtime.sendMessage({ type: "SET_BLOCKED_SITES", sites: defaultSites });
-      renderBlocked(defaultSites);
-    } else {
-      renderBlocked(blockedSites);
+      chrome.storage.local.set({ blockedSites: currentBlocked });
+      chrome.runtime.sendMessage({ type: "SET_BLOCKED_SITES", sites: currentBlocked });
     }
+    renderBlocked(currentBlocked);
   });
 
   // ---- Blocked sites: add ----
   addSiteBtn?.addEventListener("click", () => {
     const host = normalizeHost(siteInput.value);
     if (!host) return;
+    if (currentBlocked.includes(host)) { siteInput.value = ""; return; }
 
-    chrome.storage.local.get({ blockedSites: [] }, ({ blockedSites }) => {
-      if (!blockedSites.includes(host)) {
-        const next = [...blockedSites, host];
-        chrome.storage.local.set({ blockedSites: next });
-        chrome.runtime.sendMessage({ type: "SET_BLOCKED_SITES", sites: next });
-        renderBlocked(next);
-        siteInput.value = "";
-      }
-    });
+    const next = [...currentBlocked, host];
+    currentBlocked = next; // cache
+    chrome.storage.local.set({ blockedSites: next });
+    chrome.runtime.sendMessage({ type: "SET_BLOCKED_SITES", sites: next });
+    renderBlocked(next);
+    siteInput.value = "";
   });
 
-  // Enter ile ekleme
   siteInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") addSiteBtn?.click();
   });
-
 
   // === Session Saver ===
   const renderSessions = (sessions = []) => {
@@ -223,6 +307,7 @@ if(!btn||!list){
 
   renderAnalytics();
   setInterval(renderAnalytics, 5000);
+
   // === Theme Toggle ===
   const applyTheme = (dark) => {
     document.body.classList.toggle("dark", !!dark);
@@ -239,4 +324,3 @@ if(!btn||!list){
     applyTheme(dark);
   });
 });
-
