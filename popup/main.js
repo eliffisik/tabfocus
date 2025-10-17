@@ -10,10 +10,19 @@ window.addEventListener("DOMContentLoaded", () => {
   const blockedList = document.getElementById("blockedList");
   const blockedEmpty = document.getElementById("blockedEmpty");
 
+    const sessionNameInput = document.getElementById("sessionName");
+  const saveSessionBtn   = document.getElementById("saveSession");
+  const sessionsList     = document.getElementById("sessionsList");
+
 if(!btn||!list){
     console.error("Popup elements not found (#listTabs / #tabsList).");
     return;
 }
+
+ // ---- State ----
+  let isFocusOn = false;
+  let tabsVisible = false;      // tab list toggle
+  let currentBlocked = [];      // popup cache
 
  const defaultSites = [
   "youtube.com", "twitter.com", "x.com",
@@ -136,5 +145,46 @@ if(!btn||!list){
   // Enter ile ekleme
   siteInput?.addEventListener("keydown", (e) => {
     if (e.key === "Enter") addSiteBtn?.click();
+  });
+
+
+  // === Session Saver ===
+  const renderSessions = (sessions = []) => {
+    sessionsList.innerHTML = "";
+    sessions.forEach((s, idx) => {
+      const li = document.createElement("li");
+      li.innerHTML = `
+        <span>${s.name} <small style="opacity:.7">(${s.urls.length} tabs)</small></span>
+        <div class="btns">
+          <button class="restore">Restore</button>
+          <button class="delete">Delete</button>
+        </div>
+      `;
+      li.querySelector(".restore").addEventListener("click", () => {
+        chrome.windows.create({ url: s.urls });
+      });
+      li.querySelector(".delete").addEventListener("click", async () => {
+        const { sessions: cur = [] } = await chrome.storage.local.get({ sessions: [] });
+        const next = cur.filter((_, i) => i !== idx);
+        await chrome.storage.local.set({ sessions: next });
+        renderSessions(next);
+      });
+      sessionsList.appendChild(li);
+    });
+  };
+
+  chrome.storage.local.get({ sessions: [] }, ({ sessions }) => renderSessions(sessions));
+
+  saveSessionBtn?.addEventListener("click", async () => {
+    const tabs = await chrome.tabs.query({ currentWindow: true });
+    const urls = tabs.map(t => t.url).filter(u => u && !u.startsWith("chrome://"));
+    if (urls.length === 0) return;
+
+    const name = (sessionNameInput?.value?.trim()) || new Date().toLocaleString();
+    const { sessions = [] } = await chrome.storage.local.get({ sessions: [] });
+    const next = [{ name, urls }, ...sessions].slice(0, 20);
+    await chrome.storage.local.set({ sessions: next });
+    renderSessions(next);
+    if (sessionNameInput) sessionNameInput.value = "";
   });
 });

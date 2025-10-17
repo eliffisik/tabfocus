@@ -9,24 +9,42 @@
     <h1>TabFocus</h1>
 
     <!-- Focus Mode Switch -->
-    <div class="toggle-row">
+    <div class="toggle-row"  aria-label="Focus Mode">
       <label class="switch">
         <input type="checkbox" id="focusToggle" />
         <span class="slider"></span>
       </label>
       <span class="toggle-label">Focus Mode</span>
     </div>
-
+    <!-- Open Tabs-->
+     <div class="section">
+       <div class="row" style="justify-content: center;"></div>
+  
     <button id="listTabs">List Open Tabs</button>
+       </div>
     <ul id="tabsList"></ul>
+   </div>
+  <!-- Blocked Sites -->
+    <div class="section">
+      <h2>Blocked Sites</h2>
+      <div class="row">
+        <input id="siteInput" placeholder="Add site (e.g. reddit.com)" />
+        <button id="addSite" class="small">Add</button>
+      </div>
+      <ul id="blockedList"></ul>
+      <div id="blockedEmpty"></div>
+    </div>
 
-    <div class="toggle-row" style="margin-top:12px; gap:6px;">
-  <input id="siteInput" placeholder="Add site (e.g. reddit.com)" style="flex:1; padding:6px 8px; border-radius:6px; border:1px solid #ddd;">
-  <button id="addSite" style="margin:0;">Add</button>
-</div>
-<ul id="blockedList" style="margin-top:8px;"></ul>
-<div id="blockedEmpty"></div>
-
+    <!-- Session Saver -->
+    <div class="section">
+      <h2>Session Saver</h2>
+      <div class="row">
+        <input id="sessionName" placeholder="Session name (optional)" />
+        <button id="saveSession" class="small">Save Session</button>
+      </div>
+      <ul id="sessionsList"></ul>
+    </div>
+    
     <script src="./main.js"></script>
   </body>
 </html>
