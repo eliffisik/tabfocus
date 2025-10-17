@@ -187,4 +187,40 @@ if(!btn||!list){
     renderSessions(next);
     if (sessionNameInput) sessionNameInput.value = "";
   });
+
+  // === Analytics (read-only UI) ===
+  const secondsToHMS = (sec) => {
+    const h = Math.floor(sec / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    return (h>0? `${h}h `:"") + (m>0? `${m}m `:"") + `${s}s`;
+  };
+
+  const renderAnalytics = async () => {
+    const { timeByHost = {} } = await chrome.storage.local.get({ timeByHost: {} });
+    const entries = Object.entries(timeByHost).sort((a,b)=>b[1]-a[1]).slice(0,10);
+
+    analyticsList.innerHTML = "";
+    if (entries.length === 0) {
+      analyticsList.innerHTML = `<div class="item" style="opacity:.7;">No data yet. Keep browsing…</div>`;
+      return;
+    }
+
+    const max = Math.max(...entries.map(([,sec]) => sec)) || 1;
+    entries.forEach(([host, sec]) => {
+      const pct = Math.round((sec / max) * 100);
+      const wrap = document.createElement("div");
+      wrap.className = "item";
+      wrap.innerHTML = `
+        <div class="label">
+          <span>${host}</span><span>${secondsToHMS(sec)}</span>
+        </div>
+        <div class="barwrap"><div class="bar" style="width:${pct}%"></div></div>
+      `;
+      analyticsList.appendChild(wrap);
+    });
+  };
+
+  renderAnalytics();
+  setInterval(renderAnalytics, 5000);
 });

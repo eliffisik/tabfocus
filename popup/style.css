@@ -117,6 +117,18 @@ input:checked + .slider:before { transform: translateX(18px); }
 }
 #sessionsList .btns { display: flex; gap: 6px; }
 #sessionsList button { padding: 6px 10px; }
+
+
+/* ===== Analytics ===== */
+#analyticsList .item { margin-bottom: 10px; }
+#analyticsList .label { font-size: 12px; margin-bottom: 4px; display: flex; justify-content: space-between; }
+#analyticsList .barwrap {
+  width: 100%; background: var(--muted); border-radius: 8px; overflow: hidden;
+}
+#analyticsList .bar {
+  height: 10px; background: var(--accent); width: 0%;
+  transition: width .4s ease;
+}
 :root {
   --bg: #f7f6fa;
   --fg: #1e1e2f;
