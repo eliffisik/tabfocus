@@ -223,4 +223,20 @@ if(!btn||!list){
 
   renderAnalytics();
   setInterval(renderAnalytics, 5000);
+  // === Theme Toggle ===
+  const applyTheme = (dark) => {
+    document.body.classList.toggle("dark", !!dark);
+  };
+
+  chrome.storage.local.get({ themeDark: false }, ({ themeDark }) => {
+    applyTheme(themeDark);
+    if (themeToggle) themeToggle.checked = !!themeDark;
+  });
+
+  themeToggle?.addEventListener("change", () => {
+    const dark = !!themeToggle.checked;
+    chrome.storage.local.set({ themeDark: dark });
+    applyTheme(dark);
+  });
 });
+

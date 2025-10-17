@@ -136,3 +136,27 @@ input:checked + .slider:before { transform: translateX(18px); }
   --muted: #eee;
   --accent: #b45cd3;
 }
+
+/* Dark*/
+.dark {
+  --bg: #17161f;
+  --fg: #e9e9ef;
+  --card: #23232b;
+  --muted: #2b2b36;
+  --accent: #d78be4;
+}
+body.dark { background: linear-gradient(180deg, #17161f 0%, #1b1a26 100%); }
+body.dark .tab-item { background: var(--card); box-shadow: 0 6px 16px rgba(0,0,0,.28); }
+body.dark .tab-item:hover { background: #2b2a35; }
+body.dark .title { color: #faf9ff; }
+body.dark .domain { color: #b8b5cd; }
+body.dark button { box-shadow: 0 6px 14px rgba(0,0,0,.35); }
+
+/* ===== Scrollbar ===== */
+::-webkit-scrollbar { width: 7px; height: 7px; }
+::-webkit-scrollbar-thumb { background: linear-gradient(#c2a6ff, #b986f0); border-radius: 10px; }
+::-webkit-scrollbar-track { background: transparent; }
+/* --- Dark mode: başlık ve etiket renkleri beyaz --- */
+body.dark h1 { color: #ffffff; }
+body.dark .section h2,
+body.dark .toggle-label { color: #ffffff; }
