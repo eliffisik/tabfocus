@@ -18,6 +18,25 @@ Built with HTML, CSS, and JavaScript — no user tracking, no data collection.
 
  Dark/Light Theme: Clean interface that adapts to your preference.
 
+## Screenshots
+
+**Tab Focus**  
+![Focus Mode](./screenshots/tabfocus.png)
+
+**Focus Mode-Blocked Sites**  
+![Blocked Sites](./screenshots/focusmode.png)
+
+**List Tabs**  
+![Session Saver](./screenshots/displaytabs.png)
+
+**Session Saver-Analytics View**  
+![Analytics](./screenshots/sessionsaver-analytics.png)
+
+**Dark Mode**  
+![Analytics](./screenshots/darkmode.png)
+
+
+
  ## Installation
 
 Download or clone this repository:
